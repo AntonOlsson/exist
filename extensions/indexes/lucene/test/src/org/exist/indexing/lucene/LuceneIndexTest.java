@@ -15,6 +15,7 @@ import org.exist.collections.CollectionConfigurationManager;
 import org.exist.collections.IndexInfo;
 import org.exist.dom.DefaultDocumentSet;
 import org.exist.dom.DocumentSet;
+
 import org.exist.dom.MutableDocumentSet;
 import org.exist.dom.QName;
 import org.exist.indexing.OrderedValuesIndex;
@@ -101,6 +102,16 @@ public class LuceneIndexTest {
         "   ist wie die meine. Ich bin so glücklich, mein Bester, so ganz in dem Gefühle " +
         "   von ruhigem Dasein versunken, daß meine Kunst darunter leidet.</p>" +
         "</section>";
+
+    private static String XML8 =
+            "<a>" +
+            "   <b att='att on b1'>AAA on b1</b>" +
+            "   <b att='att on b2' attr='attr on b2'>AAA on b2</b>" +
+            "   <b att='att on b3'>AAA on b3</b>" +
+            "   <c att='att on c1'>AAA on c1</c>" +
+            "   <c>AAA on c2</c>" +
+            "</a>";
+
 
     private static String COLLECTION_CONFIG1 =
         "<collection xmlns=\"http://exist-db.org/collection-config/1.0\">" +
@@ -193,6 +204,19 @@ public class LuceneIndexTest {
             "       </lucene>" +
             "   </index>" +
             "</collection>";
+
+     private static String COLLECTION_CONFIG7 =
+            "<collection xmlns=\"http://exist-db.org/collection-config/1.0\">" +
+            "   <index xmlns:tei=\"http://www.tei-c.org/ns/1.0\">" +
+            "       <fulltext default=\"none\" attributes=\"no\">" +
+            "       </fulltext>" +
+            "       <lucene>" +
+            "           <text match='a/c' match-attr-name='att' match-attr-boost='20' />" +
+            "           <text qname='b' match-attr-name='att' match-attr-value='att on b2' match-attr-boost='10' />" +
+            "       </lucene>" +
+            "   </index>" +
+            "</collection>";
+
 
     private static BrokerPool pool;
     private static Collection root;
@@ -366,6 +390,37 @@ public class LuceneIndexTest {
             pool.release(broker);
         }
     }
+
+    @Test
+    public void attributeMatch() {
+        configureAndStore(COLLECTION_CONFIG7, XML8, "test.xml");
+        DBBroker broker = null;
+        try {
+            broker = pool.get(pool.getSecurityManager().getSystemSubject());
+            assertNotNull(broker);
+
+            XQuery xquery = broker.getXQueryService();
+            assertNotNull(xquery);
+            
+            Sequence seq = xquery.execute("for $a in ft:query((//b|//c), 'AAA') order by ft:score($a) descending return xs:string($a)", null, AccessContext.TEST);
+            assertNotNull(seq);
+            assertEquals(5, seq.getItemCount());
+            assertEquals("AAA on c1", seq.itemAt(0).getStringValue());
+            assertEquals("AAA on b2", seq.itemAt(1).getStringValue());
+
+
+
+//            seq = xquery.execute("for $a in ft:query((//b|//c), 'AAA') order by ft:score($a) descending return concat(xs:string($a), ' ', ft:score($a))", null, AccessContext.TEST);
+//            assertNotNull(seq);
+//            assertEquals(3, seq.getItemCount());
+//            assertEquals("AAA on B2", seq.itemAt(0).getStringValue());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            pool.release(broker);
+        }
+    } 
 
     @Test
     public void boosts() {

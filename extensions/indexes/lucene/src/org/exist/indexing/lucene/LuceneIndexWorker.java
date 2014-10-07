@@ -1133,24 +1133,37 @@ public class LuceneIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
      * @param content
      */
     protected void indexText(NodeId nodeId, QName qname, NodePath path, LuceneIndexConfig config, CharSequence content) {
-        PendingDoc pending = new PendingDoc(nodeId, qname, path, content, config);
+        PendingDoc pending = new PendingDoc(nodeId, qname, path, content, config.getBoost(), config);
         nodesToWrite.add(pending);
         cachedNodesSize += content.length();
         if (cachedNodesSize > maxCachedNodesSize)
             write();
     }
 
+    /*
+    * this version needs an element to check for attributes, for attribute matching boost
+    */
+    protected void indexText(ElementImpl element, NodeId nodeId, QName qname, NodePath path, LuceneIndexConfig config, CharSequence content) {
+        PendingDoc pending = new PendingDoc(nodeId, qname, path, content, config.getBoost(element), config);
+        nodesToWrite.add(pending);
+        cachedNodesSize += content.length();
+        if (cachedNodesSize > maxCachedNodesSize)
+            write();
+    }
+    
     private class PendingDoc {
         NodeId nodeId;
         CharSequence text;
         QName qname;
         LuceneIndexConfig idxConf;
+        float boost;
 
-        private PendingDoc(NodeId nodeId, QName qname, NodePath path, CharSequence text, LuceneIndexConfig idxConf) {
+        private PendingDoc(NodeId nodeId, QName qname, NodePath path, CharSequence text, float boost, LuceneIndexConfig idxConf) {
             this.nodeId = nodeId;
             this.qname = qname;
             this.text = text;
             this.idxConf = idxConf;
+            this.boost = boost;
         }
     }
     
@@ -1214,9 +1227,9 @@ public class LuceneIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
                 	contentField = LuceneUtil.encodeQName(pending.qname, index.getBrokerPool().getSymbols());
 
                 Field fld = new Field(contentField, pending.text.toString(), Field.Store.NO, Field.Index.ANALYZED, Field.TermVector.YES);
-                if (pending.idxConf.getBoost() > 0)
-                    fld.setBoost(pending.idxConf.getBoost());
-
+                
+                if (pending.boost > 0)
+                    fld.setBoost(pending.boost);
                 else if (config.getBoost() > 0)
                     fld.setBoost(config.getBoost());
 
@@ -1307,8 +1320,8 @@ public class LuceneIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
                             LuceneIndexConfig configuration = configIter.next();
                             if (configuration.match(path)) {
                                 TextExtractor extractor = contentStack.pop();
-                                indexText(element.getNodeId(), element.getQName(), 
-                                    path, extractor.getIndexConfig(), extractor.getText());
+
+                                indexText(element, element.getNodeId(), element.getQName(), path, extractor.getIndexConfig(), extractor.getText());
                             }
                         }
                     }

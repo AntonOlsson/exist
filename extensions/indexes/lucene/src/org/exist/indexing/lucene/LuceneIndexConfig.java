@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
+import org.exist.dom.ElementImpl;
 import org.exist.dom.QName;
 import org.exist.storage.ElementValue;
 import org.exist.storage.NodePath;
@@ -36,6 +37,12 @@ public class LuceneIndexConfig {
     
     private FieldType type = null;
     
+    // this is for the @attr matching
+    // perhaps in the future it could do a proper predicate check instead 
+    private String matchAttributeName = null; 
+    private String matchAttributeValue = null;
+    private float matchAttributeBoost = -1.0f;
+    
     public LuceneIndexConfig(Element config, Map<String, String> namespaces, AnalyzerConfig analyzers,
     			Map<String, FieldType> fieldTypes) throws DatabaseConfigurationException {
         if (config.hasAttribute(QNAME_ATTR)) {
@@ -44,6 +51,7 @@ public class LuceneIndexConfig {
             isQNameIndex = true;
         } else {
             String matchPath = config.getAttribute(MATCH_ATTR);
+
             try {
 				path = new NodePath(namespaces, matchPath);
 				if (path.length() == 0)
@@ -53,6 +61,30 @@ public class LuceneIndexConfig {
 				throw new DatabaseConfigurationException("Lucene module: invalid qname in configuration: " + e.getMessage());
 			}
         }
+
+        // match attr boosting configuration
+        if (config.hasAttribute("match-attr-name")) {
+            matchAttributeName = config.getAttribute("match-attr-name");
+
+            String boostAttr = config.getAttribute("match-attr-boost");
+            // blatant copy from FieldType constructor
+            if (boostAttr != null && boostAttr.length() > 0) {
+                try {
+                    matchAttributeBoost = Float.parseFloat(boostAttr);
+                } catch (NumberFormatException e) {
+                    throw new DatabaseConfigurationException("Invalid value for attribute 'boost'. Expected float, "
+                            + "got: " + boostAttr);
+                }
+            }
+            
+            if (config.hasAttribute("match-attr-value"))
+                matchAttributeValue = config.getAttribute("match-attr-value");
+            else
+                matchAttributeValue = null;
+        } else
+            matchAttributeName = null;
+
+
         String name = config.getAttribute(FIELD_ATTR);
         if (name != null && name.length() > 0)
         	setName(name);
@@ -122,6 +154,14 @@ public class LuceneIndexConfig {
     public float getBoost() {
         return type.getBoost();
     }
+    
+    public float getBoost(ElementImpl element) {
+        // do we have attribute match boosting? else return normal boost
+        if (element != null && matchAttributeName != null && matchAttributes(element)) {
+            return matchAttributeBoost;
+        }
+        else return getBoost();
+    }
 
     public void setName(String name) {
 		this.name = name;
@@ -190,6 +230,21 @@ public class LuceneIndexConfig {
         } catch (IllegalArgumentException e) {
             throw new DatabaseConfigurationException("Lucene index configuration error: " + e.getMessage(), e);
         }
+    }
+
+    private boolean matchAttributes(ElementImpl element) {
+        if (matchAttributeName == null)
+            return true;
+
+        // note: if are in the process of storing this element, there wont be any attributes and we will get null pointer ex.
+        if (element.hasAttribute(matchAttributeName)) {
+            // ok, found attribute on element. check attribute value
+            if (matchAttributeValue != null)
+                return element.getAttribute(matchAttributeName).equals(matchAttributeValue);
+            else
+                return true;
+        } else
+            return false;
     }
 
     public boolean match(NodePath other) {
