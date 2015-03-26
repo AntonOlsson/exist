@@ -29,6 +29,11 @@ public abstract class RDFIndex extends AbstractIndex {
         super.configure(pool, dataDir, config); //To change body of generated methods, choose Tools | Templates.
     }
     
+    @Override
+    public String getIndexId(){
+        return ID;
+    }
+    
     
 
 }

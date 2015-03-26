@@ -9,5 +9,5 @@ import org.exist.indexing.IndexWorker;
 
 //
 //public class RDFIndexWorker implements IndexWorker {
-//    
+//      
 //}

@@ -3,6 +3,7 @@ package org.exist.indexing.rdf;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdfxml.xmlinput.SAX2Model;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 import org.exist.collections.Collection;
 import org.exist.dom.persistent.AbstractCharacterData;
@@ -27,6 +28,7 @@ import org.exist.util.DatabaseConfigurationException;
 import org.exist.util.Occurrences;
 import org.exist.xquery.QueryRewriter;
 import org.exist.xquery.XQueryContext;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.AttributesImpl;
@@ -55,7 +57,7 @@ public class TDBIndexWorker implements IndexWorker {
 
     @Override
     public String getIndexId() {
-        return index.getIndexId();
+        return TDBRDFIndex.ID;
     }
 
     @Override
@@ -67,11 +69,24 @@ public class TDBIndexWorker implements IndexWorker {
     public Object configure(IndexController controller, NodeList configNodes, Map<String, String> namespaces) throws DatabaseConfigurationException {
         this.controller = controller;
         LOG.debug("Configuring TDB index...");
-        return new TDBIndexConfig(configNodes, namespaces);
+
+        Map<String, TDBIndexConfig> map = new TreeMap<>();
+//        configNodes.item(0)
+
+        for (int i = 0; i < configNodes.getLength(); i++) {
+            Node item = configNodes.item(i);
+            if (item.getLocalName().equals("")) {
+                TDBIndexConfig tdbIndexConfig = new TDBIndexConfig(configNodes, namespaces);
+                map.put(getIndexId(), tdbIndexConfig);
+            }
+        }
+
+        return map;
     }
 
     private RDFIndexConfig getIndexConfig(Collection coll) {
         IndexSpec indexConf = coll.getIndexConfiguration(broker);
+        coll.getConfiguration(broker).getIndexConfiguration();
         if (indexConf != null) {
             return (RDFIndexConfig) indexConf.getCustomIndexSpec(getIndexId());
         }
@@ -86,9 +101,10 @@ public class TDBIndexWorker implements IndexWorker {
             // Create a copy of the original RDFIndexConfig (there's only one per db instance),
             // so we can safely work with it.
             config = new RDFIndexConfig(config);
+
+            currentModel = index.getDataset().getNamedModel(doc.getDocumentURI());
+            listener.setModel(currentModel);
         }
-        currentModel = index.getDataset().getNamedModel(doc.getDocumentURI());
-        listener.setModel(currentModel);
     }
 
     @Override
@@ -136,7 +152,7 @@ public class TDBIndexWorker implements IndexWorker {
     public void removeCollection(Collection collection, DBBroker broker, boolean reindex) throws PermissionDeniedException {
         RDFIndexConfig cfg = getIndexConfig(collection);
         if (cfg != null) {
-            
+
         }
     }
 
