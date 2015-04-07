@@ -21,12 +21,13 @@ public class TDBRDFIndex extends RDFIndex {
 
     private Dataset dataset;
     private StoreConnection connection;
-    public static String ID = "tdb-index";
+//    public static String ID = "tdb-index";
     private final static Logger LOG = Logger.getLogger(TDBRDFIndex.class);
 
     @Override
     public void open() throws DatabaseConfigurationException {
 //        this.dataset = TDBFactory.createDataset(getDataDir());
+        TDB.getContext().set(TDB.symUnionDefaultGraph, true); // make configurable
         connection = StoreConnection.make(getMyDataDir());
     }
 
@@ -62,7 +63,6 @@ public class TDBRDFIndex extends RDFIndex {
 //    public String getDataDir() {
 //        return super.getDataDir() + "/tdb";
 //    }
-
     @Override
     public IndexWorker getWorker(DBBroker broker) {
         TDBIndexWorker worker = (TDBIndexWorker) workers.get(broker);
