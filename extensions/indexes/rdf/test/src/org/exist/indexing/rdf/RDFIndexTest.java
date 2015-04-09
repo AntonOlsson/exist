@@ -183,50 +183,6 @@ public class RDFIndexTest {
         }
     }
 
-//    @Test
-//    public void changeTriple() {
-//        DocumentSet docs = configureAndStore(COLLECTION_CONFIG, XML, "test1.xml");
-//        DocumentImpl doc = docs.getDocumentIterator().next();
-//
-//        final TransactionManager transact = pool.getTransactionManager();
-//        try (final DBBroker broker = pool.get(pool.getSecurityManager().getSystemSubject());
-//                final Txn transaction = transact.beginTransaction()) {
-//
-//            XQuery xquery = broker.getXQueryService();
-//            assertNotNull(xquery);
-//            Sequence seq = xquery.execute(
-//                    "import module namespace sparql=\"http://exist-db.org/xquery/sparql\"\n"
-//                    + "     at \"java:org.exist.xquery.modules.rdf.SPARQLModule\";\n"
-//                    + "sparql:query(\"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
-//                    + "               SELECT ?x "
-//                    + "               WHERE { ?x rdfs:subPropertyOf #biologicalParent }\")"
-//                    + "//text()",
-//                    null, AccessContext.TEST);
-//            assertNotNull(seq);
-//            assertEquals(1, seq.getItemCount());
-//
-//            XUpdateProcessor proc = new XUpdateProcessor(broker, docs, AccessContext.TEST);
-//            assertNotNull(proc);
-//            proc.setBroker(broker);
-//            proc.setDocumentSet(docs);
-//            String xupdate
-//                    = XUPDATE_START
-//                    + "   <xu:update select=\"//*[@ID='biologicalFather']/@ID\">"
-//                    + "       biologicalMother"
-//                    + "   </xu:update>"
-//                    + XUPDATE_END;
-//            Modification[] modifications = proc.parse(new InputSource(new StringReader(xupdate)));
-//            assertNotNull(modifications);
-//            modifications[0].process(transaction);
-//            proc.reset();
-//
-//            transact.commit(transaction);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            fail(e.getMessage());
-//        }
-//    }
-
     @Test
     public void dropSingleDocument() {
         final TransactionManager transact = pool.getTransactionManager();

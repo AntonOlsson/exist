@@ -1,5 +1,6 @@
 package org.exist.indexing.rdf;
 
+import com.hp.hpl.jena.query.ARQ;
 import org.exist.indexing.IndexWorker;
 import org.exist.storage.DBBroker;
 import org.exist.storage.btree.DBException;
@@ -8,10 +9,17 @@ import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.tdb.StoreConnection;
 import com.hp.hpl.jena.tdb.TDB;
 import com.hp.hpl.jena.tdb.TDBFactory;
+import com.hp.hpl.jena.tdb.base.block.FileMode;
+import com.hp.hpl.jena.tdb.sys.SystemTDB;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.exist.storage.BrokerPool;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 
 /**
  *
@@ -41,8 +49,7 @@ public class TDBRDFIndex extends RDFIndex {
 
     @Override
     public void sync() throws DBException {
-        if (dataset != null) {
-        }
+        TDB.sync(dataset);
     }
 
     @Override
@@ -87,4 +94,38 @@ public class TDBRDFIndex extends RDFIndex {
     private String getMyDataDir() {
         return getDataDir() + "/tdb";
     }
+
+    @Override
+    public void configure(BrokerPool pool, String dataDir, Element config) throws DatabaseConfigurationException {
+        super.configure(pool, dataDir, config);
+        
+        /*
+        * Some configurables.
+        */
+        NamedNodeMap attributes = config.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Attr attr = (Attr) attributes.item(i);
+            if (attr.getName().equals(CFG_FILE_MODE)) {
+                if (attr.getValue().equals(CFG_FILE_MODE_MAPPED)) {
+                    SystemTDB.setFileMode(FileMode.mapped);
+                } else if (attr.getValue().equals(CFG_FILE_MODE_DIRECT)) {
+                    SystemTDB.setFileMode(FileMode.direct);
+                }
+            } else if (attr.getName().equals(CFG_LOG_EXEC)) {
+                if (attr.getValue().equals(CFG_LOG_EXEC_TRUE)) {
+                    ARQ.isTrue(ARQ.symLogExec);
+                }
+            }
+        }
+        
+//        TDB.transactionJournalWriteBlockMode
+    }
+
+    private final static String CFG_FILE_MODE = "fileMode";
+    private final static String CFG_FILE_MODE_MAPPED = "mapped";
+    private final static String CFG_FILE_MODE_DIRECT = "direct";
+
+    private final static String CFG_LOG_EXEC = "logExec";
+    private final static String CFG_LOG_EXEC_TRUE = "true";
+
 }

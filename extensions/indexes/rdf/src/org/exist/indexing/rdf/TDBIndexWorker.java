@@ -1,30 +1,20 @@
 package org.exist.indexing.rdf;
 
-import com.hp.hpl.jena.query.Dataset;
-import com.hp.hpl.jena.query.Query;
-import com.hp.hpl.jena.query.QueryException;
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdfxml.xmlinput.SAX2Model;
 import com.hp.hpl.jena.sparql.graph.GraphFactory;
 import com.hp.hpl.jena.sparql.resultset.ResultSetApply;
-import com.hp.hpl.jena.sparql.util.graph.GraphUtils;
+import com.hp.hpl.jena.sparql.resultset.XMLResults;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.log4j.Logger;
 import org.exist.collections.Collection;
 import org.exist.dom.memtree.DocumentBuilderReceiver;
-import org.exist.dom.persistent.AbstractCharacterData;
-import org.exist.dom.persistent.AttrImpl;
-import org.exist.dom.persistent.DocumentImpl;
-import org.exist.dom.persistent.DocumentSet;
-import org.exist.dom.persistent.ElementImpl;
-import org.exist.dom.persistent.IStoredNode;
-import org.exist.dom.persistent.NodeProxy;
-import org.exist.dom.persistent.NodeSet;
+import org.exist.dom.persistent.*;
 import org.exist.indexing.AbstractStreamListener;
 import org.exist.indexing.IndexController;
 import org.exist.indexing.IndexWorker;
@@ -41,11 +31,14 @@ import org.exist.util.Occurrences;
 import org.exist.xquery.QueryRewriter;
 import org.exist.xquery.XPathException;
 import org.exist.xquery.XQueryContext;
+import org.exist.xquery.modules.ModuleUtils;
 import org.exist.xquery.value.Sequence;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -60,7 +53,8 @@ public class TDBIndexWorker implements IndexWorker {
     private final DBBroker broker;
     private final TDBRDFIndex index;
     private DocumentImpl currentDoc;
-    private Model cacheModel = GraphFactory.makeDefaultModel();
+    /** Model for storing pending RDF triples, for store or remove **/
+    private final Model cacheModel = GraphFactory.makeDefaultModel();
 
     private RDFIndexConfig config;
     private int mode;
@@ -163,7 +157,7 @@ public class TDBIndexWorker implements IndexWorker {
 
     @Override
     public MatchListener getMatchListener(DBBroker broker, NodeProxy proxy) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return null;
     }
 
     @Override
@@ -182,8 +176,9 @@ public class TDBIndexWorker implements IndexWorker {
                 removeNodes();
                 break;
             case StreamListener.REMOVE_BINARY:
-//            	removePlainTextIndexes();
                 break;
+            case StreamListener.UNKNOWN:
+                return;
         }
 
         cacheModel.removeAll();
@@ -221,23 +216,7 @@ public class TDBIndexWorker implements IndexWorker {
 
     @Override
     public Occurrences[] scanIndex(XQueryContext context, DocumentSet docs, NodeSet contextSet, Map<?, ?> hints) {
-        for (Iterator<DocumentImpl> iDoc = docs.getDocumentIterator(); iDoc.hasNext();) {
-            DocumentImpl doc = iDoc.next();
-            Model model = getModelOrNull(doc);
-
-            if (model == null)
-                continue;
-
-            Iterator<com.hp.hpl.jena.graph.Node> allNodes = GraphUtils.allNodes(model.getGraph());
-            while (allNodes.hasNext()) {
-                com.hp.hpl.jena.graph.Node next = allNodes.next();
-//                if (next)
-            }
-        }
-
-        Occurrences[] oc = new Occurrences[0];
-
-        return oc;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -278,38 +257,91 @@ public class TDBIndexWorker implements IndexWorker {
 
     /**
      * Query TDB with SPARQL
+     * @param context 
      * @param queryString SPARQL query string
      * @return Result document
      * @throws org.exist.xquery.XPathException Query error
      */
-    public Sequence query(String queryString) throws XPathException {
+    public Sequence query(XQueryContext context, String queryString) throws XPathException {
         Query q;
+        Sequence resultDoc = null;
         try {
-            q = QueryFactory.create(queryString);
-
-            // all query types not implemented yet
-            if (!(q.isSelectType())) {
-                throw new XPathException("SPARQL query type not supported:" + q.getQueryType());
-            }
-
-            try (QueryExecution qe = QueryExecutionFactory.create(q, index.getDataset())) {
-
-                if (q.isSelectType()) {
-                    ResultSet result = qe.execSelect();
-                    DocumentBuilderReceiver builder = new DocumentBuilderReceiver();
-                    JenaResultSet2Sax jenaResultSet2Sax = new JenaResultSet2Sax(builder);
-                    ResultSetApply.apply(result, jenaResultSet2Sax);
-
-                    return ((Sequence) builder.getDocument());
-                }
-            }
-        } catch (QueryException ex) { // query parsing or execution exception
+//            String baseURI = context.getBaseURI().getStringValue();
+            String baseURI = "";
+            q = QueryFactory.create(queryString, baseURI);
+        } catch (QueryParseException ex) {
             LOG.warn("QueryException: " + ex.getLocalizedMessage());
-            throw new XPathException(ex);
+            throw new XPathException(ex.getLine(), ex.getColumn(), "in SPARQL query: " + ex.getMessage());
         }
 
-        // shouldnt come here
-        return null;
+        // all query types not implemented yet
+        if (!(q.isSelectType() || q.isAskType() || q.isConstructType())) {
+            throw new XPathException("SPARQL query type not supported: " + queryString);
+        }
+
+        try (QueryExecution qe = QueryExecutionFactory.create(q, index.getDataset())) {
+
+            if (q.isSelectType()) {
+                ResultSet result = qe.execSelect();
+                /*
+                 * Build SELECT result 
+                 */
+                context.pushDocumentContext();
+                try {
+                    DocumentBuilderReceiver builder = new DocumentBuilderReceiver(context.getDocumentBuilder(), true);
+                    JenaResultSet2Sax jenaResultSet2Sax = new JenaResultSet2Sax(builder);
+                    ResultSetApply.apply(result, jenaResultSet2Sax);
+                    resultDoc = (Sequence) builder.getDocument();
+                } finally {
+                    context.popDocumentContext();
+                }
+            } else if (q.isAskType()) {
+                boolean result = qe.execAsk();
+                /*
+                 * Build ASK (boolean) result
+                 */
+                context.pushDocumentContext();
+                try {
+                    DocumentBuilderReceiver builder = new DocumentBuilderReceiver(context.getDocumentBuilder(), true);
+                    final Attributes attrs = new AttributesImpl();
+                    builder.startDocument();
+//                    builder.startPrefixMapping("", XMLResults.baseNamespace);
+                    builder.startElement(XMLResults.baseNamespace, XMLResults.dfRootTag, XMLResults.dfRootTag, attrs);
+                    builder.startElement(XMLResults.baseNamespace, XMLResults.dfHead, XMLResults.dfHead, attrs);
+                    builder.endElement(XMLResults.baseNamespace, XMLResults.dfHead, XMLResults.dfHead);
+                    builder.startElement(XMLResults.baseNamespace, XMLResults.dfBoolean, XMLResults.dfBoolean, attrs);
+                    builder.characters(Boolean.toString(result));
+                    builder.endElement(XMLResults.baseNamespace, XMLResults.dfBoolean, XMLResults.dfBoolean);
+                    builder.endElement(XMLResults.baseNamespace, XMLResults.dfRootTag, XMLResults.dfRootTag);
+                    builder.endDocument();
+
+                    resultDoc = (Sequence) builder.getDocument();
+
+                } catch (SAXException ex) {
+                    LOG.error(ex);
+                } finally {
+                    context.popDocumentContext();
+                }
+            } else if (q.isConstructType()) {
+                // this may not be a very nice solution?
+                Writer out = new StringWriter(256);
+                qe.execConstruct().write(out);
+                context.pushDocumentContext();
+                try {
+                    resultDoc = ModuleUtils.stringToXML(context, out.toString());
+                } catch (SAXException | IOException ex) {
+                    LOG.error(ex);
+                } finally {
+                    context.popDocumentContext();
+                }
+            }
+
+        } catch (QueryException ex) {
+            LOG.warn("QueryException: " + ex.getLocalizedMessage());
+            throw new XPathException("Sparql query execution: " + ex);
+        }
+
+        return resultDoc;
     }
 
     private class TDBStreamListener extends AbstractStreamListener {

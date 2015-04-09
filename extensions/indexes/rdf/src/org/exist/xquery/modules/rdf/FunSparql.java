@@ -21,7 +21,7 @@ public class FunSparql extends BasicFunction {
 
     public final static FunctionSignature signature = new FunctionSignature(
             new QName("query", SparqlModule.NAMESPACE_URI, null),
-            "Query the RDF index.",
+            "Query the RDF index. Not all query types are supported.",
             new SequenceType[]{
                 new FunctionParameterSequenceType("queryString", Type.STRING, Cardinality.EXACTLY_ONE, "SPARQL query string")
             },
@@ -33,8 +33,9 @@ public class FunSparql extends BasicFunction {
         TDBIndexWorker worker = (TDBIndexWorker) context.getBroker().getIndexController().getWorkerByIndexId(RDFIndex.ID);
 
         String query = args[0].toString();
+        
 
-        Sequence result = worker.query(query);
+        Sequence result = worker.query(context, query);
 
         return result;
     }

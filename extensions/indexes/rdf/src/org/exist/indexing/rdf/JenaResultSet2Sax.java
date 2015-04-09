@@ -30,31 +30,28 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
         // start elements: document, root, header, results
         try {
             handler.startDocument();
-            
-            handler.startPrefixMapping("", dfNamespace);
 
             // start root element
             atts.clear();
-//            atts.addAttribute("", "xmlns", "xmlns", "CDATA", dfNamespace);
-            handler.startElement("", dfRootTag, dfRootTag, atts);
+            handler.startElement(dfNamespace, dfRootTag, dfRootTag, atts);
 
             // start header
             atts.clear();
-            handler.startElement("", dfHead, dfHead, atts);
+            handler.startElement(dfNamespace, dfHead, dfHead, atts);
 
-            for (String n : rs.getResultVars()) {
+            for (String varName : rs.getResultVars()) {
                 atts.clear();
-                atts.addAttribute("", dfAttrVarName, dfAttrVarName, "CDATA", n);
-                handler.startElement("", dfVariable, dfVariable, atts);
-                handler.endElement("", dfVariable, dfVariable);
+                atts.addAttribute(dfNamespace, dfAttrVarName, dfAttrVarName, "CDATA", varName);
+                handler.startElement(dfNamespace, dfVariable, dfVariable, atts);
+                handler.endElement(dfNamespace, dfVariable, dfVariable);
             }
 
             // end header
-            handler.endElement("", dfHead, dfHead);
+            handler.endElement(dfNamespace, dfHead, dfHead);
 
             // start results
             atts.clear();
-            handler.startElement("", dfResults, dfResults, atts);
+            handler.startElement(dfNamespace, dfResults, dfResults, atts);
 
         } catch (SAXException ex) {
         }
@@ -64,7 +61,7 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
     public void finish(ResultSet rs) {
         // end results, root, document
         try {
-            handler.endElement("", dfResults, dfResults);
+            handler.endElement(dfNamespace, dfResults, dfResults);
             handler.endElement(dfNamespace, dfRootTag, dfRootTag);
             handler.endDocument();
         } catch (SAXException ex) {
@@ -76,7 +73,7 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
         // start a result element
         atts.clear();
         try {
-            handler.startElement("", dfSolution, dfSolution, atts);
+            handler.startElement(dfNamespace, dfSolution, dfSolution, atts);
         } catch (SAXException ex) {
         }
     }
@@ -85,7 +82,7 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
     public void finish(QuerySolution qs) {
         // end a result element
         try {
-            handler.endElement("", dfSolution, dfSolution);
+            handler.endElement(dfNamespace, dfSolution, dfSolution);
         } catch (SAXException ex) {
         }
     }
@@ -99,8 +96,8 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
         try {
             // start binding element
             atts.clear();
-            atts.addAttribute("", dfAttrVarName, dfAttrVarName, "CDATA", varName);
-            handler.startElement("", dfBinding, dfBinding, atts);
+            atts.addAttribute(dfNamespace, dfAttrVarName, dfAttrVarName, "CDATA", varName);
+            handler.startElement(dfNamespace, dfBinding, dfBinding, atts);
 
             // binding value
             if (value.isLiteral())
@@ -109,7 +106,7 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
                 resource((Resource) value);
 
             // end binding element
-            handler.endElement("", dfBinding, dfBinding);
+            handler.endElement(dfNamespace, dfBinding, dfBinding);
         } catch (SAXException ex) {
         }
     }
@@ -127,11 +124,11 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
             }
             // Literal with datatype?
             if (dt != null && dt.length() != 0) {
-                atts.addAttribute("", dfAttrDatatype, dfAttrDatatype, "CDATA", dt);
+                atts.addAttribute(dfNamespace, dfAttrDatatype, dfAttrDatatype, "CDATA", dt);
             }
-            handler.startElement("", dfLiteral, dfLiteral, atts);
+            handler.startElement(dfNamespace, dfLiteral, dfLiteral, atts);
             handler.characters(s.toCharArray(), 0, s.length());
-            handler.endElement("", dfLiteral, dfLiteral);
+            handler.endElement(dfNamespace, dfLiteral, dfLiteral);
         } catch (SAXException ex) {
         }
     }
@@ -143,15 +140,15 @@ public class JenaResultSet2Sax implements ResultSetProcessor, XMLResults {
             String uri = r.getURI();
             if (uri != null) {
                 // named node
-                handler.startElement("", dfURI, dfURI, atts);
+                handler.startElement(dfNamespace, dfURI, dfURI, atts);
                 handler.characters(uri.toCharArray(), 0, uri.length());
-                handler.endElement("", dfURI, dfURI);
+                handler.endElement(dfNamespace, dfURI, dfURI);
             } else {
                 // blank node
                 uri = r.asNode().getBlankNodeLabel();
-                handler.startElement("", dfBNode, dfBNode, atts);
+                handler.startElement(dfNamespace, dfBNode, dfBNode, atts);
                 handler.characters(uri.toCharArray(), 0, uri.length());
-                handler.endElement("", dfBNode, dfBNode);
+                handler.endElement(dfNamespace, dfBNode, dfBNode);
             }
         } catch (SAXException ex) {
         }
