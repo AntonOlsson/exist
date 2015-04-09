@@ -459,6 +459,11 @@
             <!--
             <module id="index-stats" file="stats.dbx" class="org.exist.storage.statistics.IndexStatistics" />
             -->
+            
+            <!--
+                RDF/SPARQL index using Jena TDB database.
+            -->
+            <!--module id="rdf-index" class="org.exist.indexing.rdf.TDBRDFIndex" /-->
         </modules>
 
         <!--
@@ -751,6 +756,10 @@
             <module uri="http://exist-db.org/xquery/ngram"  class="org.exist.xquery.modules.ngram.NGramModule" />
             <module uri="http://exist-db.org/xquery/sort"   class="org.exist.xquery.modules.sort.SortModule" />
             <module uri="http://exist-db.org/xquery/range"  class="org.exist.xquery.modules.range.RangeIndexModule" />
+            
+            <!--
+            <module uri="http://exist-db.org/xquery/sparql" class="org.exist.xquery.modules.rdf.SparqlModule" />
+            -->
 
             <!--
             <module uri="http://exist-db.org/xquery/spatial" class="org.exist.xquery.modules.spatial.SpatialModule" />
