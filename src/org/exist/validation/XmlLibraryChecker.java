@@ -28,7 +28,8 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.exist.util.ExistSAXParserFactory;
 
@@ -64,7 +65,7 @@ public class XmlLibraryChecker {
     };
 	
 	
-	private final static Logger logger = Logger.getLogger( XmlLibraryChecker.class );
+	private final static Logger logger = LogManager.getLogger( XmlLibraryChecker.class );
 
 
     /**
@@ -148,8 +149,7 @@ public class XmlLibraryChecker {
         if( hasValidClassVersion( "Parser", validParsers, message ) ) {
 			logger.info( message.toString() );
         } else {
-			logger.warn( message.toString() );
-            System.err.println( message.toString() );
+			logger.warn(message.toString());
 			invalidVersionFound	= true;
         }
 
@@ -181,20 +181,18 @@ public class XmlLibraryChecker {
          */
         message = new StringBuilder();
         if( hasValidClassVersion( "Resolver", validResolvers, message ) ) {
-            logger.info( message.toString() );
+            logger.info(message.toString());
         } else {
-            logger.warn( message.toString() );
-            System.err.println( message.toString() );
+            logger.warn(message.toString());
 			invalidVersionFound	= true;
         }
 
 		logger.info( "Using parser " + determineActualParserClass() );
 		logger.info( "Using transformer " + determineActualTransformerClass() );
 		
-		if( invalidVersionFound ) {
-			System.err.println( "Using parser " + determineActualParserClass() );
-			System.err.println( "Using transformer " + determineActualTransformerClass() );
-			System.err.println();
+		if(invalidVersionFound) {
+			logger.warn("Using parser " + determineActualParserClass());
+            logger.warn( "Using transformer " + determineActualTransformerClass() );
 		}
     }
 

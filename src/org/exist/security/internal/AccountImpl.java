@@ -21,7 +21,8 @@ package org.exist.security.internal;
 
 import org.exist.security.AbstractRealm;
 import org.exist.security.AbstractAccount;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.config.Configuration;
 import org.exist.config.ConfigurationException;
 import org.exist.config.Configurator;
@@ -37,6 +38,7 @@ import org.exist.security.internal.aider.UserAider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Properties;
 import org.exist.security.Credential;
 
@@ -52,7 +54,7 @@ import org.exist.storage.DBBroker;
 @ConfigurationClass("account")
 public class AccountImpl extends AbstractAccount {
 
-    private final static Logger LOG = Logger.getLogger(AccountImpl.class);
+    private final static Logger LOG = LogManager.getLogger(AccountImpl.class);
     public static boolean CHECK_PASSWORDS = true;
 
     private final static SecurityProperties securityProperties = new SecurityProperties();
@@ -310,5 +312,34 @@ public class AccountImpl extends AbstractAccount {
             }
             return loadedSecurityProperties.getProperty(propertyName);
         }
+    }
+
+    //this method is used by Configurator
+    public final Group insertGroup(final int index, final String name) throws PermissionDeniedException {
+        //if we cant find the group in our own realm, try other realms
+        final Group group = Optional.ofNullable(getRealm().getGroup(name))
+                .orElse(getRealm().getSecurityManager().getGroup(name));
+
+        return insertGroup(index, group);
+    }
+
+    private Group insertGroup(final int index, final Group group) throws PermissionDeniedException {
+
+        if(group == null){
+            return null;
+        }
+
+        final Account user = getDatabase().getSubject();
+        group.assertCanModifyGroup(user);
+
+        if(!groups.contains(group)) {
+            groups.add(index, group);
+
+            if(SecurityManager.DBA_GROUP.equals(group.getName())) {
+                hasDbaRole = true;
+            }
+        }
+
+        return group;
     }
 }

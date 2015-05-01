@@ -29,7 +29,8 @@ import org.exist.dom.persistent.MutableDocumentSet;
 import org.exist.dom.persistent.StoredNode;
 import org.exist.dom.persistent.BinaryDocument;
 import org.exist.dom.persistent.DefaultDocumentSet;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.Namespaces;
 import org.exist.collections.Collection;
 import org.exist.management.Agent;
@@ -38,7 +39,6 @@ import org.exist.security.ACLPermission;
 import org.exist.security.Permission;
 import org.exist.security.PermissionDeniedException;
 import org.exist.security.internal.AccountImpl;
-import org.exist.stax.EmbeddedXMLStreamReader;
 import org.exist.storage.DBBroker;
 import org.exist.storage.DataBackup;
 import org.exist.storage.NativeBroker;
@@ -90,7 +90,7 @@ import java.util.*;
  */
 public class SystemExport
 {
-    public final static Logger     LOG                     = Logger.getLogger( SystemExport.class );
+    public final static Logger     LOG                     = LogManager.getLogger( SystemExport.class );
 
     private static final XmldbURI   TEMP_COLLECTION         = XmldbURI.createInternal( XmldbURI.TEMP_COLLECTION );
     private static final XmldbURI   CONTENTS_URI            = XmldbURI.createInternal( "__contents__.xml" );

@@ -35,14 +35,15 @@ import org.xml.sax.InputSource;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test trigger to check if trigger configuration is working properly.
  */
 public class TestTrigger extends SAXTrigger implements DocumentTrigger {
 
-    protected Logger LOG = Logger.getLogger(getClass());
+    protected Logger LOG = LogManager.getLogger(getClass());
     
     private final static String TEMPLATE = "<?xml version=\"1.0\"?><events></events>";
 
@@ -51,7 +52,6 @@ public class TestTrigger extends SAXTrigger implements DocumentTrigger {
     public void configure(DBBroker broker, org.exist.collections.Collection parent, Map<String, List<?>> parameters) throws TriggerException {
         super.configure(broker, parent, parameters);
         XmldbURI docPath = XmldbURI.create("messages.xml");
-        System.out.println("TestTrigger prepares");
         TransactionManager transactMgr = broker.getBrokerPool().getTransactionManager();
         Txn transaction = transactMgr.beginTransaction();
         try {

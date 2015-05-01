@@ -106,7 +106,6 @@ public class RemoteCollectionTest extends RemoteDBTest {
 	
 	public void testGetNonExistentResource() {
 		try {
-			System.out.println("Retrieving non-existing resource");
 			Collection collection = getCollection();
 			Resource resource = collection.getResource("unknown.xml");
 			assertNull(resource);
@@ -117,19 +116,18 @@ public class RemoteCollectionTest extends RemoteDBTest {
 	
 	public void testListResources() {
 		try {
-		    ArrayList<String> xmlNames = new ArrayList<String>();
+		    ArrayList<String> xmlNames = new ArrayList<>();
 		    xmlNames.add("xml1");
 		    xmlNames.add("xml2");
 		    xmlNames.add("xml3");
 		    createResources(xmlNames, "XMLResource");
 		    
-		    ArrayList<String> binaryNames = new ArrayList<String>();
+		    ArrayList<String> binaryNames = new ArrayList<>();
 		    binaryNames.add("b1");
 		    binaryNames.add("b2");
 		    createResources(binaryNames, "BinaryResource");
 	
 		    String[] actualContents = getCollection().listResources();
-		    System.out.println("Resources found: " + actualContents.length);
 		    for (int i = 0; i < actualContents.length; i++) {
 		        xmlNames.remove(actualContents[i]);
 		        binaryNames.remove(actualContents[i]);
@@ -149,8 +147,7 @@ public class RemoteCollectionTest extends RemoteDBTest {
 		try {
 			Collection c = DatabaseManager.getCollection(URI + XmldbURI.ROOT_COLLECTION, "admin", "");
 			assertNull(c.getChildCollection("b"));
-			
-			System.err.println("col="+ c.getName());
+
 			String parentName = c.getName() + "/" + System.currentTimeMillis();
 			String colName = parentName + "/a";
 			c = DatabaseManager.getCollection(URI + parentName, "admin", null);

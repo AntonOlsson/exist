@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-04 The eXist Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -13,11 +13,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *  $Id$
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 package org.exist.storage;
 
@@ -37,7 +35,8 @@ import org.exist.dom.persistent.NodeHandle;
 import org.exist.dom.persistent.SymbolTable;
 import org.exist.dom.persistent.NewArrayNodeSet;
 import org.exist.dom.persistent.NodeSet;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.exist.xquery.XQueryWatchDog;
 import org.w3c.dom.Node;
@@ -106,7 +105,7 @@ import java.util.TreeMap;
  */
 public class NativeValueIndex implements ContentLoadingObserver {
 
-    private final static Logger LOG = Logger.getLogger(NativeValueIndex.class);
+    private final static Logger LOG = LogManager.getLogger(NativeValueIndex.class);
 
     public static final String FILE_NAME = "values.dbx";
     public static final String FILE_KEY_IN_CONFIG = "db-connection.values";
@@ -360,15 +359,13 @@ public class NativeValueIndex implements ContentLoadingObserver {
     }
 
 
-    public void storeText( TextImpl node, NodePath currentPath, int indexingHint )
+    public void storeText( TextImpl node, NodePath currentPath )
     {
-        // TODO Auto-generated method stub
     }
 
 
     public void removeNode(NodeHandle node, NodePath currentPath, String content )
     {
-        // TODO Auto-generated method stub
     }
 
 

@@ -14,7 +14,8 @@ import com.hp.hpl.jena.tdb.sys.SystemTDB;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.storage.BrokerPool;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
@@ -29,7 +30,7 @@ public class TDBRDFIndex extends RDFIndex {
     private Dataset dataset;
     private StoreConnection connection;
 //    public static String ID = "tdb-index";
-    private final static Logger LOG = Logger.getLogger(TDBRDFIndex.class);
+    private final static Logger LOG = LogManager.getLogger(TDBRDFIndex.class);
 
     @Override
     public void open() throws DatabaseConfigurationException {
@@ -86,7 +87,8 @@ public class TDBRDFIndex extends RDFIndex {
 
     public Dataset getDataset() {
         if (dataset == null) {
-            if (connection == null) throw new IllegalStateException("TDB was never opened or was already closed");
+            if (connection == null)
+                throw new IllegalStateException("TDB was never opened or was already closed");
             dataset = TDBFactory.createDataset(connection.getLocation());
         }
         return dataset;

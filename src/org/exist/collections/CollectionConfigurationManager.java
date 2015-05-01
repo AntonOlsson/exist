@@ -19,7 +19,8 @@
  */
 package org.exist.collections;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.EXistException;
 import org.exist.dom.persistent.DocumentImpl;
 import org.exist.dom.memtree.SAXAdapter;
@@ -57,7 +58,7 @@ import java.util.concurrent.Callable;
  */
 public class CollectionConfigurationManager {
 
-    private static final Logger LOG = Logger.getLogger(CollectionConfigurationManager.class);
+    private static final Logger LOG = LogManager.getLogger(CollectionConfigurationManager.class);
 
     public final static String CONFIG_COLLECTION = XmldbURI.SYSTEM_COLLECTION + "/config";
 
@@ -288,7 +289,6 @@ public class CollectionConfigurationManager {
                         final String message = "Failed to read configuration document " + confDoc.getFileURI() + " in " + configCollection.getURI() + ". "
                                 + e.getMessage();
                         LOG.error(message);
-                        System.out.println(message);
                     }
                     
                     latch.write(new Callable<Void>() {

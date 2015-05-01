@@ -32,7 +32,8 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.collections.Collection;
 import org.exist.dom.persistent.AttrImpl;
 import org.exist.dom.persistent.AbstractCharacterData;
@@ -90,7 +91,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class NGramIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
 
-    private static final Logger LOG = Logger.getLogger(NGramIndexWorker.class);
+    private static final Logger LOG = LogManager.getLogger(NGramIndexWorker.class);
 
     private static final String INDEX_ELEMENT = "ngram";
     private static final String QNAME_ATTR = "qname";
@@ -966,7 +967,7 @@ public class NGramIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
                     return true;
                 while (is.available() > 0) {
                     int storedDocId = is.readInt();
-                    is.readByte();
+                    byte nameType = is.readByte();
                     int occurrences = is.readInt();
                     //Read (variable) length of node IDs + frequency + offsets
                     int length = is.readFixedInt();
@@ -981,7 +982,7 @@ public class NGramIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
                         NodeId nodeId = index.getBrokerPool().getNodeFactory().createFromStream(previous, is);
                         previous = nodeId;
                         int freq = is.readInt();
-                        NodeProxy nodeProxy = new NodeProxy(storedDocument, nodeId);
+                        NodeProxy nodeProxy = new NodeProxy(storedDocument, nodeId, nameTypeToNodeType(nameType));
                         // if a context set is specified, we can directly check if the
                         // matching node is a descendant of one of the nodes
                         // in the context set.
@@ -1010,6 +1011,20 @@ public class NGramIndexWorker implements OrderedValuesIndex, QNamedKeysIndex {
             } catch (IOException e) {
                 LOG.error(e.getMessage(), e);
                 return true;
+            }
+        }
+
+        private short nameTypeToNodeType(final byte nameType) {
+            switch(nameType) {
+                case ElementValue.ELEMENT:
+                    return Node.ELEMENT_NODE;
+
+                case ElementValue.ATTRIBUTE:
+                    return Node.ATTRIBUTE_NODE;
+
+                case ElementValue.UNKNOWN:
+                default:
+                    return NodeProxy.UNKNOWN_NODE_TYPE;
             }
         }
 

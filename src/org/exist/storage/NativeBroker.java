@@ -1,26 +1,26 @@
 /*
- * eXist Open Source Native XML Database
- * Copyright (C) 2001-2014 The eXist-db Project
- * http://exist-db.org
+ *  eXist Open Source Native XML Database
+ *  Copyright (C) 2001-2015 The eXist Project
+ *  http://exist-db.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *  
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software Foundation
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *  
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 package org.exist.storage;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.dom.memtree.DOMIndexer;
 import org.exist.dom.persistent.AttrImpl;
 import org.exist.dom.persistent.BinaryDocument;
@@ -45,8 +45,6 @@ import org.exist.collections.CollectionCache;
 import org.exist.collections.CollectionConfigurationException;
 import org.exist.collections.CollectionConfigurationManager;
 import org.exist.collections.triggers.*;
-import org.exist.fulltext.FTIndex;
-import org.exist.fulltext.FTIndexWorker;
 import org.exist.indexing.StreamListener;
 import org.exist.indexing.StructuralIndex;
 import org.exist.numbering.NodeId;
@@ -103,7 +101,6 @@ import org.exist.storage.dom.INodeIterator;
  *
  * @author Wolfgang Meier
  * @link org.exist.storage.NativeElementIndex
- * @link org.exist.storage.NativeTextEngine
  * @link org.exist.storage.NativeValueIndex
  * @link org.exist.storage.NativeValueIndexByQName
  *
@@ -114,7 +111,7 @@ public class NativeBroker extends DBBroker {
 
     public final static String EXIST_STATISTICS_LOGGER = "org.exist.statistics";
 
-    protected final static Logger LOG_STATS = Logger.getLogger(EXIST_STATISTICS_LOGGER);
+    protected final static Logger LOG_STATS = LogManager.getLogger(EXIST_STATISTICS_LOGGER);
 
     public final static byte LOG_RENAME_BINARY = 0x40;
     public final static byte LOG_CREATE_BINARY = 0x41;
@@ -326,9 +323,9 @@ public class NativeBroker extends DBBroker {
     //    }	
     //}	
 
-    private void notifyStoreText(final TextImpl text, final NodePath currentPath, final int indexingHint) {
+    private void notifyStoreText(final TextImpl text, final NodePath currentPath) {
         for(final ContentLoadingObserver observer : contentLoadingObservers) {
-            observer.storeText(text, currentPath, indexingHint);
+            observer.storeText(text, currentPath);
         }
     }
 
@@ -539,16 +536,6 @@ public class NativeBroker extends DBBroker {
     @Override
     public NativeValueIndex getValueIndex() {
         return valueIndex;
-    }
-
-    @Override
-    public TextSearchEngine getTextEngine() {
-        final FTIndexWorker worker = (FTIndexWorker) indexController.getWorkerByIndexId(FTIndex.ID);
-        if(worker == null) {
-            LOG.warn("Fulltext index is not configured. Please check the <modules> section in conf.xml");
-            return null;
-        }
-        return worker.getEngine();
     }
 
     @Override
@@ -3872,8 +3859,7 @@ public class NativeBroker extends DBBroker {
                     break;
 
                 case Node.TEXT_NODE:
-                    notifyStoreText((TextImpl) node, currentPath,
-                        fullTextIndex ? NativeTextEngine.DO_NOT_TOKENIZE : NativeTextEngine.TOKENIZE);
+                    notifyStoreText((TextImpl) node, currentPath);
                     break;
             }
         }

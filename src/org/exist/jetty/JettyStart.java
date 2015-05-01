@@ -32,7 +32,8 @@ import java.util.TimerTask;
 
 import javax.servlet.Servlet;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.Connector;
@@ -66,7 +67,7 @@ import org.xmldb.api.base.Database;
  */
 public class JettyStart extends Observable implements LifeCycle.Listener {
 
-    protected static final Logger logger = Logger.getLogger(JettyStart.class);
+    protected static final Logger logger = LogManager.getLogger(JettyStart.class);
 
     public static void main(String[] args) {
         final JettyStart start = new JettyStart();
@@ -144,8 +145,8 @@ public class JettyStart extends Observable implements LifeCycle.Listener {
         
         logger.info("[jetty.home : " 
                 + System.getProperty("jetty.home") + "]");
-        logger.info("[log4j.configuration : " 
-                + System.getProperty("log4j.configuration") + "]");
+        logger.info("[log4j.configurationFile : "
+                + System.getProperty("log4j.configurationFile") + "]");
 
         try {
             // we register our own shutdown hook

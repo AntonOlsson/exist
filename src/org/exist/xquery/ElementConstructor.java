@@ -21,7 +21,8 @@
 
 package org.exist.xquery;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.Namespaces;
 import org.exist.dom.QName;
 import org.exist.dom.memtree.MemTreeBuilder;
@@ -52,7 +53,7 @@ public class ElementConstructor extends NodeConstructor {
 	private QName namespaceDecls[] = null;
 	
 	protected final static Logger LOG =
-		Logger.getLogger(ElementConstructor.class);	
+		LogManager.getLogger(ElementConstructor.class);
 	
 	public ElementConstructor(XQueryContext context) {
 	    super(context);
@@ -106,11 +107,15 @@ public class ElementConstructor extends NodeConstructor {
 	public void addNamespaceDecl(String name, String uri) throws XPathException {
         final QName qn = new QName(name, uri, "xmlns");
 
-        if (name.equalsIgnoreCase("xml") || name.equalsIgnoreCase("xmlns"))
-            {throw new XPathException(this, ErrorCodes.XQST0070, "can not redefine '" + qn + "'");}
+        if ( ("xml".equals(name) && !Namespaces.XML_NS.equals(uri)) || ("xmlns".equals(name) && ! "".equals(uri))) {
+            throw new XPathException(this, ErrorCodes.XQST0070, "can not redefine '" + qn + "'");
+        }
         
-        if (uri.equalsIgnoreCase(Namespaces.XML_NS))
+        if (Namespaces.XML_NS.equals(uri) && !"xml".equals(name))
             {throw new XPathException(this, ErrorCodes.XQST0070, "'"+Namespaces.XML_NS+"' can bind only to 'xml' prefix");}
+        
+        if (Namespaces.XMLNS_NS.equals(uri) && !"xmlns".equals(name))
+            {throw new XPathException(this, ErrorCodes.XQST0070, "'"+Namespaces.XMLNS_NS+"' can bind only to 'xmlns' prefix");}
         	
         if (name.length()!=0 && uri.trim().length()==0) {
            throw new XPathException(this, ErrorCodes.XQST0085, "cannot undeclare a prefix "+name+".");

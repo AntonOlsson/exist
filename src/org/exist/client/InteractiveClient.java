@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-2014 The eXist-db Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -16,7 +16,6 @@
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- *
  */
 package org.exist.client;
 
@@ -78,7 +77,8 @@ import jline.Terminal;
 import org.apache.avalon.excalibur.cli.CLArgsParser;
 import org.apache.avalon.excalibur.cli.CLOption;
 import org.apache.avalon.excalibur.cli.CLUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.SystemProperties;
 import org.exist.dom.persistent.XMLUtil;
 import org.exist.security.ACLPermission;
@@ -87,7 +87,6 @@ import org.exist.security.Permission;
 import org.exist.security.SecurityManager;
 import org.exist.security.internal.aider.UserAider;
 import org.exist.storage.ElementIndex;
-import org.exist.storage.TextSearchEngine;
 import org.exist.util.CollectionScanner;
 import org.exist.util.ConfigurationHelper;
 import org.exist.util.DirectoryScanner;
@@ -215,7 +214,7 @@ public class InteractiveClient {
     protected Writer traceWriter = null;
     protected ClientFrame frame;
     
-    private final static Logger LOG = Logger.getLogger(InteractiveClient.class.getName());
+    private final static Logger LOG = LogManager.getLogger(InteractiveClient.class.getName());
     
     //XXX:make pluggable
     private static boolean havePluggableCommands = false;
@@ -239,17 +238,12 @@ public class InteractiveClient {
         messageln("--- general commands ---");
         messageln("ls                   list collection contents");
         messageln("cd [collection|..]   change current collection");
-        messageln("put [file pattern] upload file or directory"
-                + " to the database");
-        messageln("putgz [file pattern] upload possibly gzip compressed file or directory"
-                + " to the database");
-        messageln("putzip [file pattern] upload the contents of a ZIP archive"
-                + " to the database");
+        messageln("put [file pattern]   upload file or directory to the database");
+        messageln("putgz [file pattern] upload possibly gzip compressed file or directory to the database");
+        messageln("putzip [file pattern] upload the contents of a ZIP archive to the database");
         messageln("edit [resource] open the resource for editing");
-        messageln("mkcol collection     create new sub-collection in "
-                + "current collection");
-        messageln("rm document          remove document from current "
-                + "collection");
+        messageln("mkcol collection     create new sub-collection in current collection");
+        messageln("rm document          remove document from current collection");
         messageln("rmcol collection     remove collection");
         messageln("set [key=value]      set property. Calling set without ");
         messageln("                     argument shows current settings.");
@@ -302,6 +296,8 @@ public class InteractiveClient {
      * @exception Exception   Description of the Exception
      */
     protected void connect() throws Exception {
+        System.out.println("Connecting to database...");
+
         final String uri = properties.getProperty(InteractiveClient.URI);
         if (startGUI && frame != null) {
             frame.setStatus("connecting to " + uri);
@@ -329,6 +325,8 @@ public class InteractiveClient {
         if (startGUI && frame != null) {
             frame.setStatus("connected to " + uri + " as user " + properties.getProperty("user"));
         }
+
+        System.out.println("Connected :-)");
     }
     
     /**
@@ -860,7 +858,7 @@ public class InteractiveClient {
                         if (p1.equals(p2)) {
                             break;
                         }
-                        System.out.println(EOL + "entered passwords differ. Try again...");
+                        messageln("Entered passwords differ. Try again...");
                         
                     }
                     final UserAider user = new UserAider(args[1]);
@@ -873,19 +871,24 @@ public class InteractiveClient {
                             user.addGroup(group);
                         }
                     }
+
+                    if(user.getGroups().length == 0) {
+                        messageln("No groups specified, will be a member of the '" + SecurityManager.GUEST_GROUP +"' group!");
+                        user.addGroup(SecurityManager.GUEST_GROUP);
+                    }
                     
                     mgtService.addAccount(user);
-                    System.out.println("user " + user + " created.");
+                    messageln("User '" + user.getName() + "' created.");
                 } catch (final Exception e) {
-                    System.out.println("ERROR: " + e.getMessage());
+                    errorln("ERROR: " + e.getMessage());
                     e.printStackTrace();
                 }
             } else if (args[0].equalsIgnoreCase("users")) {
                 final UserManagementService mgtService = (UserManagementService) current
                         .getService("UserManagementService", "1.0");
                 final Account users[] = mgtService.getAccounts();
-                System.out.println("User\t\tGroups");
-                System.out.println("-----------------------------------------");
+                messageln("User\t\tGroups");
+                messageln("-----------------------------------------");
                 for (int i = 0; i < users.length; i++) {
                     System.out.print(users[i].getName() + "\t\t");
                     final String[] groups = users[i].getGroups();
@@ -903,7 +906,7 @@ public class InteractiveClient {
                     return true;
                 }
                 if (args.length < 2) {
-                    System.out.println("Usage: passwd username");
+                    messageln("Usage: passwd username");
                     return true;
                 }
                 try {
@@ -911,7 +914,7 @@ public class InteractiveClient {
                             .getService("UserManagementService", "1.0");
                     final Account user = mgtService.getAccount(args[1]);
                     if (user == null) {
-                        System.out.println("no such user.");
+                        messageln("no such user.");
                         return true;
                     }
                     String p1;
@@ -928,7 +931,8 @@ public class InteractiveClient {
                     mgtService.updateAccount(user);
                     properties.setProperty("password", p1);
                 } catch (final Exception e) {
-                    System.err.println("ERROR: " + e.getMessage());
+                    errorln("ERROR: " + e.getMessage());
+                    e.printStackTrace();
                 }
             } else if (args[0].equalsIgnoreCase("chmod")) {
                 if (args.length < 2) {
@@ -1041,26 +1045,7 @@ public class InteractiveClient {
                             .getOccurrences()), 50));
                 }
                 return true;
-                
-            } else if (args[0].equalsIgnoreCase("terms")) {
-                if (args.length < 3) {
-                    System.out
-                            .println("Usage: terms [xpath] sequence-start sequence-end");
-                    return true;
-                }
-                final IndexQueryService service = (IndexQueryService) current
-                        .getService("IndexQueryService", "1.0");
-                Occurrences[] terms;
-                if (args.length == 3) {
-                    terms = service.scanIndexTerms(args[1], args[2], true);
-                } else {
-                    terms = service.scanIndexTerms(args[1], args[2], args[3]);
-                }
-                System.out.println("Element occurrences in collection " + current.getName());
-                System.out.println("-------------------------------------------------------");
-                for (int i = 0; i < terms.length; i++) {
-                    System.out.println(formatString(terms[i].getTerm().toString(), Integer.toString(terms[i].getOccurrences()), 50));
-                }
+
             } else if (args[0].equalsIgnoreCase("xupdate")) {
                 if (startGUI) {
                     messageln("command not supported in GUI mode.");
@@ -1102,7 +1087,7 @@ public class InteractiveClient {
                 }
                 final String uri = tok.nextToken();
                 namespaceMappings.put(prefix, uri);
-                
+
             } else if (args[0].equalsIgnoreCase("set")) {
                 if (args.length == 1) {
                     properties.list(System.out);
@@ -2787,8 +2772,6 @@ public class InteractiveClient {
             
             if (o instanceof ElementIndex) {
                 elementsProgress.set(ind.getValue(), ind.getMax());
-            } else if (o instanceof TextSearchEngine) {
-                wordsProgress.set(ind.getValue(), ind.getMax());
             } else {
                 parseProgress.set(ind.getValue(), ind.getMax());
             }

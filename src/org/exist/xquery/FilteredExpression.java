@@ -49,7 +49,7 @@ public class FilteredExpression extends AbstractExpression {
      */
     public FilteredExpression(XQueryContext context, Expression expr) {
         super(context);
-        this.expression = expr;
+        this.expression = expr.simplify();
     }
 
     public void addPredicate(Predicate pred) {
@@ -77,6 +77,7 @@ public class FilteredExpression extends AbstractExpression {
             final AnalyzeContextInfo newContext = new AnalyzeContextInfo(contextInfo);
             newContext.setParent(this);
             newContext.setContextStep(this);
+            newContext.setStaticType(expression.returnsType());
             for (final Predicate pred : predicates) {
                 pred.analyze(newContext);
             }

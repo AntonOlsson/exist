@@ -24,6 +24,7 @@ package org.exist.config;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import java.io.File;
 import junit.framework.*;
+import org.apache.logging.log4j.LogManager;
 import org.exist.collections.Collection;
 import org.exist.dom.persistent.BinaryDocument;
 import org.exist.dom.persistent.DefaultDocumentSet;
@@ -45,12 +46,7 @@ public class TwoDatabasesTest extends TestCase
 {
    
    final static String DRIVER = "org.exist.xmldb.DatabaseImpl";
-   static class ShutdownListenerImpl implements ShutdownListener {
 
-      public void shutdown(String dbname, int remainingInstances) {
-         System.err.println("Shutdown of "+dbname+", remaining="+remainingInstances);
-      }
-   }
    BrokerPool pool1;
    Subject user1;
    
@@ -65,11 +61,11 @@ public class TwoDatabasesTest extends TestCase
    protected void setUp() throws Exception
    {
       // Setup the log4j configuration
-      String log4j = System.getProperty("log4j.configuration");
+      String log4j = System.getProperty("log4j.configurationFile");
       if (log4j == null) {
-         File lf = new File("log4j.xml");
+         File lf = new File("log42j.xml");
          if (lf.canRead()) {
-            System.setProperty("log4j.configuration", lf.toURI().toASCIIString());
+            System.setProperty("log4j.configurationFile", lf.toURI().toASCIIString());
          }
       }
       
@@ -92,7 +88,6 @@ public class TwoDatabasesTest extends TestCase
       Configuration config1 = new Configuration(config1File.getAbsolutePath());
       BrokerPool.configure("db1", 1, threads, config1 );
       pool1 = BrokerPool.getInstance("db1");
-      pool1.registerShutdownListener(new ShutdownListenerImpl());
       user1 = pool1.getSecurityManager().getSystemSubject();
       DBBroker broker1 = pool1.get(user1);
       
@@ -100,7 +95,6 @@ public class TwoDatabasesTest extends TestCase
       Configuration config2 = new Configuration(config2File.getAbsolutePath());
       BrokerPool.configure("db2", 1, threads, config2 );
       pool2 = BrokerPool.getInstance("db2");
-      pool2.registerShutdownListener(new ShutdownListenerImpl());
       user2 = pool1.getSecurityManager().getSystemSubject();
       DBBroker broker2 = pool2.get(user2);
 
@@ -132,8 +126,6 @@ public class TwoDatabasesTest extends TestCase
    public void put()
       throws Exception
    {
-      System.out.println("Putting documents.");
-
       try(final DBBroker broker1 = pool1.get(user1);
             final Txn transaction1 = pool1.getTransactionManager().beginTransaction()) {
           Collection top1 = storeBin(broker1, transaction1, "1");
@@ -152,7 +144,6 @@ public class TwoDatabasesTest extends TestCase
    public void get()
       throws Exception
    {
-      System.out.println("Getting documents.");
       DBBroker broker1 = null;
       try {
          broker1 = pool1.get(user1);
@@ -176,7 +167,6 @@ public class TwoDatabasesTest extends TestCase
       throws Exception
    {
       String data = bin+suffix;
-      System.out.println("Stored: "+data);
       Collection top = broker.getCollection(XmldbURI.create("xmldb:exist:///"));
       top.addBinaryResource(txn,broker,XmldbURI.create("xmldb:exist:///bin"),data.getBytes(),"text/plain");
       return top;
@@ -188,13 +178,10 @@ public class TwoDatabasesTest extends TestCase
       BinaryDocument binDoc = null;
       try {
          Collection top = broker.getCollection(XmldbURI.create("xmldb:exist:///"));
-         System.out.println("count="+top.getDocumentCount(broker));
+         int count = top.getDocumentCount(broker);
          MutableDocumentSet docs = new DefaultDocumentSet();
          top.getDocuments(broker,docs);
          XmldbURI [] uris = docs.getNames();
-         for (int i=0; i<uris.length; i++) {
-            System.out.println(i+": "+uris[i].toString());
-         }
          //binDoc = (BinaryDocument)broker.getXMLResource(XmldbURI.create("xmldb:exist:///bin"),Lock.READ_LOCK);
          binDoc = (BinaryDocument)top.getDocument(broker,XmldbURI.create("xmldb:exist:///bin"));
          top.release(Lock.READ_LOCK);
@@ -202,7 +189,6 @@ public class TwoDatabasesTest extends TestCase
          ByteArrayOutputStream os = new ByteArrayOutputStream();
          broker.readBinaryResource(binDoc,os);
          String comp = os.size()>0 ? new String(os.toByteArray()) : "";
-         System.out.println("Got: "+comp);
          return comp.equals(bin+suffix);
       } finally {
          if (binDoc!=null) {

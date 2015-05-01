@@ -11,7 +11,8 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Iterator;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.collections.Collection;
 import org.exist.dom.memtree.DocumentBuilderReceiver;
 import org.exist.dom.persistent.*;
@@ -47,7 +48,7 @@ import org.xml.sax.helpers.AttributesImpl;
  */
 public class TDBIndexWorker implements IndexWorker {
 
-    private static final Logger LOG = Logger.getLogger(TDBIndexWorker.class);
+    private static final Logger LOG = LogManager.getLogger(TDBIndexWorker.class);
 
     private final DBBroker broker;
     private final TDBRDFIndex index;
@@ -139,8 +140,7 @@ public class TDBIndexWorker implements IndexWorker {
     public <T extends IStoredNode> IStoredNode getReindexRoot(IStoredNode<T> node, NodePath path, boolean insert, boolean includeSelf) {
         // until TDBStreamReader$reset can handle base-uri properly when reindexing at non-root level, we reindex the whole document.
         return (IStoredNode) node.getOwnerDocument().getFirstChild();
-        
-        
+
         // return topmost parent element under root (tree level 2)
 //        NodeId nodeId = node.getNodeId();
 //        while (nodeId.getTreeLevel() > 2) {
@@ -231,7 +231,7 @@ public class TDBIndexWorker implements IndexWorker {
     public QueryRewriter getQueryRewriter(XQueryContext context) {
         return null;
     }
-    
+
     /* Does the index have an entry for this document? */
     public boolean isDocumentIndexed(Document doc) {
         String documentURI = doc.getDocumentURI();
@@ -371,7 +371,7 @@ public class TDBIndexWorker implements IndexWorker {
                 LOG.error(ex);
             }
         }
-        
+
         /*
          * Reset RDF sax handler with the new document
          */
@@ -379,7 +379,7 @@ public class TDBIndexWorker implements IndexWorker {
 //            String base = "resource:" + doc.getBaseURI() + "#";
             String base = "";
             String lang = "";
-            
+
             // todo: base URL and lang for the case where only a subtree is added/removed
             // if at reindex we start from first level under RDF root, we'd want base uri and lang from root element.
             // how can we know if doc has root node yet? getFirstChild prints error messages and stacktrace when root node not built yet 

@@ -1,7 +1,8 @@
 package org.exist.indexing.rdf;
 
 import java.util.HashMap;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exist.indexing.AbstractIndex;
 import org.exist.storage.DBBroker;
 
@@ -12,7 +13,7 @@ import org.exist.storage.DBBroker;
 public abstract class RDFIndex extends AbstractIndex {
 
     public final static String ID = RDFIndex.class.getName();
-    private final static Logger LOG = Logger.getLogger(RDFIndex.class);
+    private final static Logger LOG = LogManager.getLogger(RDFIndex.class);
     protected HashMap workers = new HashMap();
 
     @Override

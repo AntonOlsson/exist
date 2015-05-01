@@ -16,7 +16,8 @@ import org.xmldb.api.base.ResourceSet;
 import org.xmldb.api.base.XMLDBException;
 import org.xmldb.api.modules.XPathQueryService;
 
-/** Tests for various standart XQuery functions
+/**
+ * Tests for various standard XQuery functions
  * @author jens
  */
 public class JavaFunctionsTest extends TestCase {
@@ -62,6 +63,7 @@ public class JavaFunctionsTest extends TestCase {
 	/*
 	 * @see TestCase#setUp()
 	 */
+        @Override
 	protected void setUp() throws Exception {
 		// initialize driver
 		Class<?> cl = Class.forName("org.exist.xmldb.DatabaseImpl");
@@ -88,12 +90,12 @@ public class JavaFunctionsTest extends TestCase {
 	/*
 	 * @see TestCase#tearDown()
 	 */
+        @Override
 	protected void tearDown() throws Exception {
 		DatabaseManager.deregisterDatabase(database);
 		DatabaseInstanceManager dim =
 			(DatabaseInstanceManager) root.getService("DatabaseInstanceManager", "1.0");
 		dim.shutdown();
-		//System.out.println("tearDown PASSED");
 	}
 
 }

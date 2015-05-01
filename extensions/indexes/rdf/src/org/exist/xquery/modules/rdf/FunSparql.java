@@ -1,6 +1,7 @@
 package org.exist.xquery.modules.rdf;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.exist.dom.QName;
 import org.exist.indexing.rdf.RDFIndex;
 import org.exist.indexing.rdf.TDBIndexWorker;
@@ -17,7 +18,7 @@ import org.exist.xquery.value.Type;
  */
 public class FunSparql extends BasicFunction {
 
-    protected static Logger LOG = Logger.getLogger(FunSparql.class);
+    protected static Logger LOG = LogManager.getLogger(FunSparql.class);
 
     public final static FunctionSignature signature = new FunctionSignature(
             new QName("query", SparqlModule.NAMESPACE_URI, null),
