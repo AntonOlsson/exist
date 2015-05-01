@@ -12,8 +12,6 @@ declare namespace rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 declare namespace myhouse = "myhouse://";
 
 
-
-
 declare variable $rdftest:XCONF1 :=
     <collection xmlns="http://exist-db.org/collection-config/1.0">
         <index xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -70,6 +68,7 @@ function rdftest:tearDown() {
 
 
 declare
+    %test:name("sparql query test")
 
     %test:args("PREFIX myhouse: <myhouse://>
                 SELECT ?x
@@ -83,26 +82,28 @@ declare
                 ORDER BY ASC(?c)")
     %test:assertEquals("myhouse://table", "1", "myhouse://chair", "2")
 
-(: relative URI in pattern doesnt seem to work well with jena? :)
-(:
     %test:args("PREFIX myhouse: <myhouse://>
-                SELECT ?x
-                WHERE { ?x myhouse:room kitchen }
+                SELECT ?x ?r
+                WHERE { ?x myhouse:room ?r }
                 ORDER BY ASC(?c)")
-    %test:assertEquals("myhouse://chair", "myhouse://table")
-:)
+    %test:assertEquals("myhouse://chair", "kitchen",
+                       "myhouse://table", "kitchen")
+
 function rdftest:query($query as xs:string) {
     sparql:query($query)//text()
 };
 
 
-(: update literal value :)
 declare
-    %test:assertEquals('4')
+    %test:name('update literal value')
+
+    %test:assertEquals('3', '4')
+
 function rdftest:updateNode() {
     let $query := "PREFIX myhouse:<myhouse://> SELECT ?c WHERE { myhouse:window myhouse:count ?c }"
     let $node := /rdf:RDF/*[@rdf:about='myhouse://window']/myhouse:count
     return (
+        sparql:query($query)//text(),
         update value $node with '4',
         sparql:query($query)//text()
     )

@@ -20,7 +20,6 @@ import org.exist.indexing.IndexController;
 import org.exist.indexing.IndexWorker;
 import org.exist.indexing.MatchListener;
 import org.exist.indexing.StreamListener;
-import org.exist.numbering.NodeId;
 import org.exist.security.PermissionDeniedException;
 import org.exist.storage.DBBroker;
 import org.exist.storage.IndexSpec;
@@ -138,12 +137,16 @@ public class TDBIndexWorker implements IndexWorker {
 
     @Override
     public <T extends IStoredNode> IStoredNode getReindexRoot(IStoredNode<T> node, NodePath path, boolean insert, boolean includeSelf) {
+        // until TDBStreamReader$reset can handle base-uri properly when reindexing at non-root level, we reindex the whole document.
+        return (IStoredNode) node.getOwnerDocument().getFirstChild();
+        
+        
         // return topmost parent element under root (tree level 2)
-        NodeId nodeId = node.getNodeId();
-        while (nodeId.getTreeLevel() > 2) {
-            nodeId = nodeId.getParentId();
-        }
-        return broker.objectWith(node.getOwnerDocument(), nodeId);
+//        NodeId nodeId = node.getNodeId();
+//        while (nodeId.getTreeLevel() > 2) {
+//            nodeId = nodeId.getParentId();
+//        }
+//        return broker.objectWith(node.getOwnerDocument(), nodeId);
     }
 
     @Override
@@ -171,6 +174,9 @@ public class TDBIndexWorker implements IndexWorker {
                 break;
             case StreamListener.REMOVE_ALL_NODES:
                 removeDocument();
+                // reset mode because we dont want to try to remove doc again
+                // on any subsequent flush (like during database shutdown)
+                mode = StreamListener.UNKNOWN;
                 break;
             case StreamListener.REMOVE_SOME_NODES:
                 removeNodes();
@@ -180,7 +186,9 @@ public class TDBIndexWorker implements IndexWorker {
             case StreamListener.UNKNOWN:
                 return;
         }
-
+        // reset mode (as per method description: prepare for being reused for a different job.)
+        mode = StreamListener.UNKNOWN;
+        // clear model cache
         cacheModel.removeAll();
     }
 
@@ -216,12 +224,18 @@ public class TDBIndexWorker implements IndexWorker {
 
     @Override
     public Occurrences[] scanIndex(XQueryContext context, DocumentSet docs, NodeSet contextSet, Map<?, ?> hints) {
-        throw new UnsupportedOperationException();
+        return new Occurrences[0];
     }
 
     @Override
     public QueryRewriter getQueryRewriter(XQueryContext context) {
         return null;
+    }
+    
+    /* Does the index have an entry for this document? */
+    public boolean isDocumentIndexed(Document doc) {
+        String documentURI = doc.getDocumentURI();
+        return index.getDataset().containsNamedModel(documentURI);
     }
 
     private void removeDocument() {
@@ -247,8 +261,8 @@ public class TDBIndexWorker implements IndexWorker {
     }
 
     private void removeDocument(Document doc) {
-        if (currentDoc != null) {
-            String documentURI = currentDoc.getDocumentURI();
+        if (doc != null) {
+            String documentURI = doc.getDocumentURI();
             Dataset dataset = index.getDataset();
             if (dataset.containsNamedModel(documentURI))
                 dataset.removeNamedModel(documentURI);
@@ -357,19 +371,24 @@ public class TDBIndexWorker implements IndexWorker {
                 LOG.error(ex);
             }
         }
-
+        
+        /*
+         * Reset RDF sax handler with the new document
+         */
         public void reset(Document doc) {
-            String base = "";//"resource://" + doc.getBaseURI();
+//            String base = "resource:" + doc.getBaseURI() + "#";
+            String base = "";
             String lang = "";
-            // todo? figure out URI base and lang.
-            // how can we know if doc has root node yet? getFirstChild prints error messages and stacktrace when root node not yet built
-//            if (doc.hasChildNodes()) {
-//                ElementImpl root = (ElementImpl) doc.getFirstChild();
-//                if (root != null) {
-//                    base = root.getBaseURI();
-//                    String langAttr = root.getAttributeNS(NamespaceSupport.XMLNS, "lang");
-//                    if (langAttr != null) lang = langAttr; 
-//                }
+            
+            // todo: base URL and lang for the case where only a subtree is added/removed
+            // if at reindex we start from first level under RDF root, we'd want base uri and lang from root element.
+            // how can we know if doc has root node yet? getFirstChild prints error messages and stacktrace when root node not built yet 
+//            ElementImpl root = (ElementImpl) doc.getFirstChild();
+//            if (root != null) {
+//                base = root.getBaseURI();
+//                String langAttr = root.getAttributeNS(NamespaceSupport.XMLNS, "lang");
+//                if (langAttr != null)
+//                    lang = langAttr;
 //            }
             try {
                 saxHandler.initParse(base, lang);

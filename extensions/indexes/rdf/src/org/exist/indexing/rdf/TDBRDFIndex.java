@@ -34,7 +34,7 @@ public class TDBRDFIndex extends RDFIndex {
     @Override
     public void open() throws DatabaseConfigurationException {
 //        this.dataset = TDBFactory.createDataset(getDataDir());
-        TDB.getContext().set(TDB.symUnionDefaultGraph, true); // make configurable
+        TDB.getContext().set(TDB.symUnionDefaultGraph, true); // todo: make configurable?
         connection = StoreConnection.make(getMyDataDir());
     }
 
@@ -42,12 +42,17 @@ public class TDBRDFIndex extends RDFIndex {
     public void close() throws DBException {
         if (dataset != null) {
             dataset.close();
+            dataset = null;
         }
+        connection = null;
         TDB.closedown();
     }
 
     @Override
     public void sync() throws DBException {
+        if (connection != null) {
+            connection.flush();
+        }
         TDB.sync(dataset);
     }
 
@@ -80,8 +85,10 @@ public class TDBRDFIndex extends RDFIndex {
     }
 
     public Dataset getDataset() {
-        if (dataset == null)
+        if (dataset == null) {
+            if (connection == null) throw new IllegalStateException("TDB was never opened or was already closed");
             dataset = TDBFactory.createDataset(connection.getLocation());
+        }
         return dataset;
     }
 
@@ -97,10 +104,10 @@ public class TDBRDFIndex extends RDFIndex {
     @Override
     public void configure(BrokerPool pool, String dataDir, Element config) throws DatabaseConfigurationException {
         super.configure(pool, dataDir, config);
-        
+
         /*
-        * Some configurables.
-        */
+         * Some configurables.
+         */
         NamedNodeMap attributes = config.getAttributes();
         for (int i = 0; i < attributes.getLength(); i++) {
             Attr attr = (Attr) attributes.item(i);
@@ -116,7 +123,7 @@ public class TDBRDFIndex extends RDFIndex {
                 }
             }
         }
-        
+
 //        TDB.transactionJournalWriteBlockMode
     }
 
